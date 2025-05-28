@@ -1,0 +1,32 @@
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+
+ENV SQLALCHEMY_DATABASE_URI=sqlite:///:memory:
+
+# Install Python 3.11 and required tools
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 && \
+    apt-get install -y postgresql-client libpq-dev libcurl4-openssl-dev libssl-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and install Poetry
+RUN pip3 install --upgrade pip && pip3 install poetry
+
+# Set working directory
+WORKDIR /app
+
+# Copy pyproject.toml and install dependencies
+COPY pyproject.toml .
+RUN poetry install --no-root
+
+# Copy the application code
+COPY bin bin
+COPY todo todo
+
+# Run the application
+CMD ["poetry", "run", "flask", "--app", "todo", "run", "--debug", "--host", "0.0.0.0", "--port", "6400"]
